@@ -4,22 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Affiliate Agent Dashboard</title>
+    <meta http-equiv="refresh" content="7200">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
         .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px 30px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; border: 1px solid #334155; flex-wrap: wrap; gap: 15px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px 30px; background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 16px; border: 1px solid #334155; flex-wrap: wrap; gap: 15px; }
         header h1 { font-size: 28px; background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .header-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-        .live-datetime { background: #0f172a; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; font-size: 14px; color: #34d399; }
+        .live-datetime { background: #0f172a; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #34d399; }
         .live-indicator { display: inline-block; width: 10px; height: 10px; background: #34d399; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
-        .stat-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 24px; border-radius: 16px; text-align: center; border: 1px solid #334155; transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card { background: linear-gradient(135deg, #1e293b, #0f172a); padding: 24px; border-radius: 16px; text-align: center; border: 1px solid #334155; }
         .stat-card .icon { font-size: 32px; margin-bottom: 10px; }
         .stat-card .number { font-size: 32px; font-weight: 700; }
         .stat-card .label { font-size: 13px; color: #94a3b8; margin-top: 6px; }
@@ -27,41 +24,27 @@
         .stat-card.green .number { color: #34d399; }
         .stat-card.yellow .number { color: #fbbf24; }
         .stat-card.purple .number { color: #a78bfa; }
-        
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-        @media (max-width: 1200px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
-        
-        .section { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; margin-bottom: 24px; overflow: hidden; border: 1px solid #334155; }
-        .section-header { padding: 18px 24px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
-        .section-header h2 { font-size: 18px; color: #f1f5f9; display: flex; align-items: center; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .section { background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 16px; margin-bottom: 24px; border: 1px solid #334155; }
+        .section-header { padding: 18px 24px; border-bottom: 1px solid #334155; }
+        .section-header h2 { font-size: 18px; color: #f1f5f9; }
         .section-body { padding: 20px; }
-        
-        .chart-container { position: relative; height: 300px; width: 100%; }
-        .chart-container canvas { width: 100% !important; height: 100% !important; }
-        
-        .badge { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
-        .badge-verified, .badge-pass { background: #065f46; color: #34d399; }
-        .badge-pending, .badge-pass-with-warnings { background: #78350f; color: #fbbf24; }
-        
+        .chart-container { position: relative; height: 300px; }
         .niche-card { background: #0f172a; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
         .niche-card h3 { color: #60a5fa; margin-bottom: 15px; font-size: 16px; }
         .niche-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; }
         .niche-stat:last-child { border-bottom: none; }
-        
         .platform-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
         .platform-item { background: #0f172a; padding: 16px; border-radius: 12px; border: 1px solid #334155; }
         .platform-item h4 { color: #a78bfa; margin-bottom: 8px; }
         .platform-item p { color: #94a3b8; font-size: 13px; }
         .platform-item .type { color: #34d399; font-size: 12px; font-weight: 600; }
-        
         a { color: #60a5fa; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        
-        .btn { padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.2s; display: inline-block; }
-        .btn:hover { transform: scale(1.05); }
+        .btn { padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; display: inline-block; margin: 5px; }
         .btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
         .btn-success { background: #065f46; color: #34d399; }
+        .refresh-note { background: #1e293b; padding: 12px 20px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 20px; font-size: 13px; color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -72,63 +55,56 @@
                 <span class="live-indicator"></span>
                 <span style="color:#94a3b8;font-size:13px;">LIVE</span>
             </div>
-            <div class="header-right">
+            <div style="display:flex;align-items:center;gap:15px;">
                 <div class="live-datetime" id="liveDateTime">Loading...</div>
+                <div class="refresh-note">Last updated: 2026-07-18 16:19 UTC<br>Auto-refresh: Every 2 hours</div>
             </div>
         </header>
         
         <div class="stats-grid">
             <div class="stat-card blue">
                 <div class="icon">📝</div>
-                <div class="number">10</div>
+                <div class="number">2</div>
                 <div class="label">Total Drafts</div>
             </div>
             <div class="stat-card green">
                 <div class="icon">✅</div>
-                <div class="number">1</div>
+                <div class="number">0</div>
                 <div class="label">Published</div>
             </div>
             <div class="stat-card yellow">
                 <div class="icon">⏳</div>
-                <div class="number">9</div>
+                <div class="number">2</div>
                 <div class="label">Pending</div>
             </div>
             <div class="stat-card purple">
                 <div class="icon">🔗</div>
-                <div class="number">19</div>
+                <div class="number">14</div>
                 <div class="label">Affiliate Programs</div>
             </div>
             <div class="stat-card green">
                 <div class="icon">💰</div>
-                <div class="number">$15.50</div>
+                <div class="number">$0.00</div>
                 <div class="label">Est. Revenue</div>
             </div>
             <div class="stat-card blue">
                 <div class="icon">👆</div>
-                <div class="number">45</div>
+                <div class="number">0</div>
                 <div class="label">Est. Clicks</div>
             </div>
         </div>
         
         <div class="grid-2">
             <div class="section">
-                <div class="section-header">
-                    <h2>📊 Posts by Niche</h2>
-                </div>
+                <div class="section-header"><h2>📊 Posts by Niche</h2></div>
                 <div class="section-body">
-                    <div class="chart-container">
-                        <canvas id="nicheChart"></canvas>
-                    </div>
+                    <div class="chart-container"><canvas id="nicheChart"></canvas></div>
                 </div>
             </div>
             <div class="section">
-                <div class="section-header">
-                    <h2>📈 Content Status</h2>
-                </div>
+                <div class="section-header"><h2>📈 Content Status</h2></div>
                 <div class="section-body">
-                    <div class="chart-container">
-                        <canvas id="statusChart"></canvas>
-                    </div>
+                    <div class="chart-container"><canvas id="statusChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -141,170 +117,59 @@
                 <div class="niche-stat"><span>Programs</span><span>6</span></div>
             </div>
             <div class="niche-card">
-                <h3>AI tools for freelancers</h3>
-                <div class="niche-stat"><span>Drafts</span><span>5</span></div>
-                <div class="niche-stat"><span>Published</span><span>1</span></div>
-                <div class="niche-stat"><span>Programs</span><span>5</span></div>
-            </div>
-            <div class="niche-card">
-                <h3>Fashion & Beauty</h3>
-                <div class="niche-stat"><span>Drafts</span><span>0</span></div>
+                <h3>AI tools for freelancers and solopreneurs</h3>
+                <div class="niche-stat"><span>Drafts</span><span>1</span></div>
                 <div class="niche-stat"><span>Published</span><span>0</span></div>
-                <div class="niche-stat"><span>Programs</span><span>0</span></div>
-            </div>
-            <div class="niche-card">
-                <h3>Health & Fitness</h3>
-                <div class="niche-stat"><span>Drafts</span><span>0</span></div>
-                <div class="niche-stat"><span>Published</span><span>0</span></div>
-                <div class="niche-stat"><span>Programs</span><span>0</span></div>
-            </div>
-            <div class="niche-card">
-                <h3>Tech Gadgets</h3>
-                <div class="niche-stat"><span>Drafts</span><span>0</span></div>
-                <div class="niche-stat"><span>Published</span><span>0</span></div>
-                <div class="niche-stat"><span>Programs</span><span>0</span></div>
-            </div>
-            <div class="niche-card">
-                <h3>Online Courses</h3>
-                <div class="niche-stat"><span>Drafts</span><span>0</span></div>
-                <div class="niche-stat"><span>Published</span><span>0</span></div>
-                <div class="niche-stat"><span>Programs</span><span>0</span></div>
-            </div>
-        </div>
+                <div class="niche-stat"><span>Programs</span><span>8</span></div>
+            </div></div>
         
         <div class="section">
-            <div class="section-header">
-                <h2>🚀 Platforms - Kahan Dal Sakte Ho Content</h2>
-            </div>
+            <div class="section-header"><h2>🚀 Platforms - Kahan Dal Sakte Ho Content</h2></div>
             <div class="section-body">
                 <div class="platform-list">
-                    <div class="platform-item">
-                        <h4>📝 Blogger</h4>
-                        <p>Google ka free blogging platform. Auto-publish enabled hai.</p>
-                        <span class="type">✅ Active</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>📌 Pinterest</h4>
-                        <p>Visual discovery engine. Fashion, Beauty, Fitness ke liye best.</p>
-                        <span class="type">⏳ Pending Approval</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>🐦 Twitter/X</h4>
-                        <p>Short threads aur product reviews share karo.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>📸 Instagram</h4>
-                        <p>Reels aur posts se products promote karo.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>💼 LinkedIn</h4>
-                        <p>B2B aur professional content ke liye best.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>🎵 TikTok</h4>
-                        <p>Short videos se viral content banao.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>📰 Medium</h4>
-                        <p>Long-form articles publish karo. SEO benefit milta hai.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>💬 Reddit</h4>
-                        <p>Niche communities mein valuable content share karo.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>🛒 Amazon Associates</h4>
-                        <p>Products ke direct affiliate links share karo.</p>
-                        <span class="type">➕ Sign Up Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>📧 Email Newsletter</h4>
-                        <p>Subscribers ko weekly deals aur reviews bhejo.</p>
-                        <span class="type">➕ Setup Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>📺 YouTube</h4>
-                        <p>Product reviews aur tutorials banao.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
-                    <div class="platform-item">
-                        <h4>💬 WhatsApp/Telegram</h4>
-                        <p>Deals aur offers share karo groups mein.</p>
-                        <span class="type">➕ Add Karo</span>
-                    </div>
+                    <div class="platform-item"><h4>📝 Blogger</h4><p>Google ka free blogging platform. Auto-publish enabled.</p><span class="type">✅ Active</span></div>
+                    <div class="platform-item"><h4>📌 Pinterest</h4><p>Visual discovery. Fashion, Beauty, Fitness ke liye best.</p><span class="type">⏳ Pending</span></div>
+                    <div class="platform-item"><h4>🐦 Twitter/X</h4><p>Short threads aur product reviews.</p><span class="type">➕ Add Karo</span></div>
+                    <div class="platform-item"><h4>📸 Instagram</h4><p>Reels aur posts se products promote.</p><span class="type">➕ Add Karo</span></div>
+                    <div class="platform-item"><h4>💼 LinkedIn</h4><p>B2B aur professional content.</p><span class="type">➕ Add Karo</span></div>
+                    <div class="platform-item"><h4>📺 YouTube</h4><p>Product reviews aur tutorials.</p><span class="type">➕ Add Karo</span></div>
+                    <div class="platform-item"><h4>📰 Medium</h4><p>Long-form articles. SEO benefit.</p><span class="type">➕ Add Karo</span></div>
+                    <div class="platform-item"><h4>💬 Reddit</h4><p>Niche communities mein content.</p><span class="type">➕ Add Karo</span></div>
                 </div>
             </div>
         </div>
         
         <div class="section">
-            <div class="section-header">
-                <h2>⚡ Quick Links</h2>
-            </div>
-            <div class="section-body" style="display:flex;gap:15px;flex-wrap:wrap;">
+            <div class="section-header"><h2>⚡ Quick Links</h2></div>
+            <div class="section-body">
                 <a href="http://rkpicks.blogspot.com" target="_blank" class="btn btn-primary">📝 View Blog</a>
-                <a href="https://github.com/Rehman4175/affiliate-agent" target="_blank" class="btn btn-primary">💻 GitHub Repo</a>
-                <a href="https://github.com/Rehman4175/affiliate-agent/actions" target="_blank" class="btn btn-success">⚙️ GitHub Actions</a>
+                <a href="https://github.com/Rehman4175/affiliate-agent" target="_blank" class="btn btn-primary">💻 GitHub</a>
+                <a href="https://github.com/Rehman4175/affiliate-agent/actions" target="_blank" class="btn btn-success">⚙️ Actions</a>
             </div>
         </div>
     </div>
     
     <script>
-        // Live DateTime
         function updateDateTime() {
             const now = new Date();
-            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-            document.getElementById('liveDateTime').textContent = now.toLocaleDateString('en-US', options);
+            document.getElementById('liveDateTime').textContent = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         }
         updateDateTime();
         setInterval(updateDateTime, 1000);
         
-        // Charts
         document.addEventListener('DOMContentLoaded', function() {
             new Chart(document.getElementById('nicheChart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: ['AI Students', 'AI Freelancers', 'Fashion', 'Health', 'Tech', 'Courses'],
-                    datasets: [{
-                        label: 'Published',
-                        data: [0, 1, 0, 0, 0, 0],
-                        backgroundColor: '#34d399'
-                    }, {
-                        label: 'Drafts',
-                        data: [1, 5, 0, 0, 0, 0],
-                        backgroundColor: '#60a5fa'
-                    }]
+                    labels: ['AI tools for st', 'AI tools for fr'],
+                    datasets: [{ label: 'Published', data: [0, 0], backgroundColor: '#34d399' }, { label: 'Drafts', data: [1, 1], backgroundColor: '#60a5fa' }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#94a3b8' } } },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } } } }
             });
-            
             new Chart(document.getElementById('statusChart').getContext('2d'), {
                 type: 'doughnut',
-                data: {
-                    labels: ['Published', 'Pending', 'Failed'],
-                    datasets: [{
-                        data: [1, 9, 0],
-                        backgroundColor: ['#34d399', '#fbbf24', '#f87171']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#94a3b8' } } }
-                }
+                data: { labels: ['Published', 'Pending'], datasets: [{ data: [0, 2], backgroundColor: ['#34d399', '#fbbf24'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
             });
         });
     </script>
