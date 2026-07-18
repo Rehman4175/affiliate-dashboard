@@ -162,7 +162,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .btn-reject { background: #7f1d1d; color: #f87171; margin-left: 8px; }
         .btn-reject:hover { background: #991b1b; }
         
-        .chart-container { position: relative; height: 300px; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container canvas { width: 100% !important; height: 100% !important; }
         
         .niche-card { background: #0f172a; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
         .niche-card h3 { color: #60a5fa; margin-bottom: 15px; font-size: 16px; }
@@ -353,49 +354,58 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     </div>
     
     <script>
-        // Niche Chart
-        new Chart(document.getElementById('nicheChart'), {
-            type: 'bar',
-            data: {
-                labels: NICHE_NAMES,
-                datasets: [{
-                    label: 'Published',
-                    data: NICHE_PUBLISHED,
-                    backgroundColor: '#34d399'
-                }, {
-                    label: 'Drafts',
-                    data: NICHE_DRAFTS,
-                    backgroundColor: '#60a5fa'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#94a3b8' } } },
-                scales: { 
-                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
-                }
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Niche Chart
+            const nicheCtx = document.getElementById('nicheChart');
+            if (nicheCtx) {
+                new Chart(nicheCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: NICHE_NAMES,
+                        datasets: [{
+                            label: 'Published',
+                            data: NICHE_PUBLISHED,
+                            backgroundColor: '#34d399'
+                        }, {
+                            label: 'Drafts',
+                            data: NICHE_DRAFTS,
+                            backgroundColor: '#60a5fa'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#94a3b8' } } },
+                        scales: {
+                            x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+                        }
+                    }
+                });
+            }
+
+            // Status Doughnut
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                new Chart(statusCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Published', 'Pending', 'Failed'],
+                        datasets: [{
+                            data: [PUBLISHED_COUNT, PENDING_COUNT, FAILED_COUNT],
+                            backgroundColor: ['#34d399', '#fbbf24', '#f87171']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#94a3b8' } } }
+                    }
+                });
             }
         });
-        
-        // Status Doughnut
-        new Chart(document.getElementById('statusChart'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Published', 'Pending', 'Failed'],
-                datasets: [{
-                    data: [PUBLISHED_COUNT, PENDING_COUNT, FAILED_COUNT],
-                    backgroundColor: ['#34d399', '#fbbf24', '#f87171']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#94a3b8' } } }
-            }
-        });
-        
+
         function filterByNiche() {
             const nicheId = document.getElementById('nicheSelect').value;
             window.location.href = nicheId ? `/?niche=${nicheId}` : '/';
