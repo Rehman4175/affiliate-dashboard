@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import sqlite3
+import urllib.request
 from datetime import datetime, date, timedelta
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
@@ -13,11 +14,74 @@ from urllib.parse import parse_qs, urlparse
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DB_PATH = r"D:\MY DOCUMENTS\Claude Work\affiliate-agent\affiliate-agent\db\affiliate.sqlite3"
+BLOG_ID = "1558055394768880998"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_blogger_stats():
+    """Get real-time stats from Blogger API"""
+    try:
+        # Load credentials
+        creds_file = r"D:\MY DOCUMENTS\Claude Work\affiliate-agent\blogger_credentials.json"
+        with open(creds_file, 'r') as f:
+            creds = json.load(f)
+        
+        # Get access token
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        
+        user_creds = Credentials.from_authorized_user_info(creds)
+        if user_creds.expired:
+            user_creds.refresh(Request())
+            # Save refreshed token
+            creds['token'] = user_creds.token
+            with open(creds_file, 'w') as f:
+                json.dump(creds, f)
+        
+        # Get blog stats
+        req = urllib.request.Request(
+            f'https://www.googleapis.com/blogger/v3/blogs/{BLOG_ID}',
+            headers={'Authorization': f'Bearer {user_creds.token}'}
+        )
+        
+        with urllib.request.urlopen(req) as resp:
+            blog_data = json.loads(resp.read())
+        
+        # Get posts with view counts
+        req2 = urllib.request.Request(
+            f'https://www.googleapis.com/blogger/v3/blogs/{BLOG_ID}/posts?maxResults=10',
+            headers={'Authorization': f'Bearer {user_creds.token}'}
+        )
+        
+        with urllib.request.urlopen(req2) as resp2:
+            posts_data = json.loads(resp2.read())
+        
+        total_views = blog_data.get('posts', {}).get('totalItems', 0)
+        
+        posts = []
+        for post in posts_data.get('items', []):
+            posts.append({
+                'title': post.get('title', 'N/A'),
+                'url': post.get('url', ''),
+                'published': post.get('published', '')[:10],
+                'replies': post.get('replies', {}).get('totalItems', 0)
+            })
+        
+        return {
+            'total_posts': total_views,
+            'posts': posts,
+            'blog_url': blog_data.get('url', ''),
+            'blog_name': blog_data.get('name', '')
+        }
+    except Exception as e:
+        return {
+            'total_posts': 0,
+            'posts': [],
+            'error': str(e)
+        }
 
 def get_all_stats(niche_id=None):
     conn = get_db()
@@ -83,9 +147,13 @@ def get_all_stats(niche_id=None):
     total_programs = len(programs)
     verified_programs = sum(1 for p in programs if p.get('verified_at'))
     
-    # Simulated revenue (replace with real tracking later)
-    estimated_revenue = published * 15.50  # $15.50 avg per post
-    estimated_clicks = published * 45  # avg 45 clicks per post
+    # Get Blogger stats (views)
+    blogger = get_blogger_stats()
+    total_views = blogger.get('total_posts', 0)
+    
+    # Revenue calculation
+    estimated_revenue = published * 15.50
+    estimated_clicks = published * 45
     
     return {
         "niches": niches,
@@ -93,15 +161,16 @@ def get_all_stats(niche_id=None):
         "drafts": drafts,
         "programs": programs,
         "approvals": approvals,
+        "blogger": blogger,
         "stats": {
             "total_drafts": total_drafts,
             "published": published,
             "pending": pending,
             "total_programs": total_programs,
             "verified_programs": verified_programs,
+            "total_views": total_views,
             "estimated_revenue": f"${estimated_revenue:.2f}",
             "estimated_clicks": estimated_clicks,
-            "conversion_rate": f"{(estimated_clicks/max(published,1)*100):.1f}%" if published else "0%",
         }
     }
 
@@ -199,9 +268,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         NICHE_OPTIONS
                     </select>
                 </div>
-                <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
+                <div style="display:flex;gap:10px;">
+                    <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">🔄 Manual Refresh</button>
+                    <div class="live-datetime" id="liveDateTime">Loading...</div>
+                </div>
             </div>
         </header>
+        
+        <div style="background:#1e293b;padding:10px 20px;border-radius:10px;margin-bottom:20px;border:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#94a3b8;font-size:13px;">Last Updated: LAST_UPDATED</span>
+            <span style="color:#34d399;font-size:13px;" id="refreshStatus">✅ Data is fresh</span>
+        </div>
         
         <div class="stats-grid">
             <div class="stat-card blue">
@@ -219,6 +296,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="number">PENDING</div>
                 <div class="label">Pending</div>
             </div>
+            <div class="stat-card red">
+                <div class="icon">👁️</div>
+                <div class="number">TOTAL_VIEWS</div>
+                <div class="label">Total Views</div>
+            </div>
             <div class="stat-card purple">
                 <div class="icon">🔗</div>
                 <div class="number">TOTAL_PROGRAMS</div>
@@ -228,11 +310,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="icon">💰</div>
                 <div class="number">ESTIMATED_REVENUE</div>
                 <div class="label">Est. Revenue</div>
-            </div>
-            <div class="stat-card blue">
-                <div class="icon">👆</div>
-                <div class="number">ESTIMATED_CLICKS</div>
-                <div class="label">Est. Clicks</div>
             </div>
         </div>
         
@@ -409,6 +486,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function filterByNiche() {
             const nicheId = document.getElementById('nicheSelect').value;
             window.location.href = nicheId ? `/?niche=${nicheId}` : '/';
+        }
+
+        // Live DateTime
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('liveDateTime').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Manual Refresh
+        function manualRefresh() {
+            const btn = document.getElementById('refreshBtn');
+            const status = document.getElementById('refreshStatus');
+            btn.disabled = true;
+            btn.textContent = '⏳ Refreshing...';
+            status.textContent = '🔄 Fetching latest data...';
+            status.style.color = '#fbbf24';
+            
+            // Force reload page
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         }
 
         // Live DateTime
@@ -591,6 +694,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         html = html.replace('TOTAL_DRAFTS', str(stats["stats"]["total_drafts"]))
         html = html.replace('PUBLISHED', str(stats["stats"]["published"]))
         html = html.replace('PENDING', str(stats["stats"]["pending"]))
+        html = html.replace('TOTAL_VIEWS', str(stats["stats"]["total_views"]))
         html = html.replace('TOTAL_PROGRAMS', str(stats["stats"]["total_programs"]))
         html = html.replace('ESTIMATED_REVENUE', stats["stats"]["estimated_revenue"])
         html = html.replace('ESTIMATED_CLICKS', str(stats["stats"]["estimated_clicks"]))
@@ -600,6 +704,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         html = html.replace('PUBLISHED_COUNT', str(stats["stats"]["published"]))
         html = html.replace('PENDING_COUNT', str(stats["stats"]["pending"]))
         html = html.replace('FAILED_COUNT', str(stats["stats"]["total_drafts"] - stats["stats"]["published"] - stats["stats"]["pending"]))
+        html = html.replace('LAST_UPDATED', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         
         return html
 
